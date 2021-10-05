@@ -1,22 +1,25 @@
-# Packaging your software using RPM
+# Packaging applications your software using RPM
 
 If you use RedHat or Fedora you will quickly find out yourself using 'dnf' (or yum) to install software packages. RPM is the most important software management tool on this Linux distributions and you will see shortly how you can take advantage of this framework to distribute your own software.
 
+Hopefully you got a chance to read a previously written article on the [same subject](https://www.redhat.com/sysadmin/create-rpm-package) by Valentin Bajrami. I will repeat some of the same concepts here but will ilustrate a few issues you may find on the way when you package. Also will use a 2 more complex examples and a few issues you may find when packaging native applications.
+
 By the end of this article you will be able to do:
 
-* Determine how to compile and package your application for distribution
+* Determine how to compile and package your own native application for distribution
 * Package third party applications that do not haven an RPM or maybe they do but you want to customize it.
 
 
 I assume the following:
-* You have some basic knowledge of how to use RPM ([query packages](https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/RPM_Guide-Using_RPM_DB-getting_information.html), [install, delete](https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-command-reference.html#id741230)). If that is not the case you can get familiar first with these concepts first and the come back here for some fun.
+
+* You have basic knowledge of how to use RPM ([query packages](https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/RPM_Guide-Using_RPM_DB-getting_information.html), [install, delete](https://docs.fedoraproject.org/en-US/Fedora_Draft_Documentation/0.1/html/RPM_Guide/ch-command-reference.html#id741230)). If that is not the case you can get familiar first with these concepts first and the come back here for some fun.
 * You have Make, git, gcc and Java installed if you want to do complete *my exercices*. Not required but would be nice if you practice as we move along:
 
 ```shell=
-sudo dnf install -y make gcc-10 java-11-openjdk-headless
+sudo dnf install -y make gcc-10 java-11-openjdk-headless git
 ```
 
-That will install make, gcc and java 11 using [dnf](https://dnf.readthedocs.io/en/latest/command_ref.html) package manager.
+This will install make, gcc, java 11 and git using [dnf](https://dnf.readthedocs.io/en/latest/command_ref.html) package manager.
 
 
 ## Packaging your very own software using RPM
@@ -280,7 +283,8 @@ Updating / installing...
    1:jdumpertools-v0.1-1.fc33         ################################# [100%]
 ```
 
-Confirm is there
+Quickly let's confirm installed RPMS is there:
+
 ```shell=
 [josevnz@dmaf5 ~]$ rpm -qi jdumpertools
 Name        : jdumpertools
@@ -316,7 +320,11 @@ rpm: all
 
 ```
 
-*This is a nice shorcut to prepare your rpmbuild sandbox, tar your files after they got compiled with make and then package them using 'rpmbuild' command. Freel free to call and see what it happens. (```make rpm```)*
+*This is a convenient shorcut to prepare your rpmbuild sandbox, tar your files after they got compiled with make and then package them using 'rpmbuild' command. Freel free to call and see what it happens. (```make rpm```)*
+
+
+I showed you first *what commands and tools can be used to generate the RPM* files but now is time to show you *how to write* the RPM spec file...
+
 
 ## Creating a spec file for jdumper tools
 
@@ -388,7 +396,7 @@ Also important:
 * I disabled the creation of debug code during packaging with ```%global debug_package %{nil}```
 * The changelog is how you tell the world what changed with this new package version.
 
-## Checking for errors in your spec file with rpmlint
+## Checking for errors in your spec file with rpmlint (finding the hard way that your RPM is not perfect)
 
 It is always nice to check for obvious errors or ways to improve our RPMS:
 
@@ -404,7 +412,7 @@ So now let's check the RPM spec file:
 0 packages and 1 specfiles checked; 0 errors, 1 warnings.
 ```
 
-[The rpmlint documentation](https://fedoraproject.org/wiki/Common_Rpmlint_issues) says than the Source0 must be a well define URL (The value should be a valid, public HTTP, HTTPS, or FTP URL.). So will not worry about this warning:
+[The rpmlint documentation](https://fedoraproject.org/wiki/Common_Rpmlint_issues) says than the **Source0** must be a well define URL (The value should be a valid, public HTTP, HTTPS, or FTP URL.). So will not worry about this warning:
 
 What about the RPM itself?
 
@@ -428,12 +436,11 @@ jdumpertools.x86_64: W: no-manual-page-for-binary jutmp
 ```
 
 10 warnings and one error. Some are easy to fix:
-* License [format](https://fedoraproject.org/wiki/Licensing:Main#License_of_Fedora_SPEC_Files).
-* Man pages: Yup, I wrote a very simple one with [troff](https://www.gnu.org/software/groff/) 
-* Installing man pages, fixes on spec file
-* Including the soname in the library
+* License must be on a specific [format](https://fedoraproject.org/wiki/Licensing:Main#License_of_Fedora_SPEC_Files).
+* Man pages are required for programs: Yup, I wrote a very simple one with [troff](https://www.gnu.org/software/groff/) 
+* Including the *[soname](https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_node/ld_3.html)* in the library
 
-After the fixes only 1 warning:
+After the fixes only 1 warning remains:
 ```shell=
 [josevnz@dmaf5 jdumpertools]$ make rpm
 ...
@@ -446,15 +453,236 @@ We can ignore that one too.
 
 Now we can upgrade our RPM with the improved version:
 
-TODO
-
 ```shell=
-
+sudo rpm -Uhv ~/rpmbuild/RPMS/x86_64/jdumpertools-v0.2-1.fc33.x86_64.rpm
 ```
 
 ## Packaging third party applications
 
-#TODO
+Another very common scenario is the following: You found a piece of sfotware you want to use but there is no RPM for it.
+
+For this example, I'm going to use a Java benchmark I like from NASA: [NAS Parallel Benchmarks](https://www.nas.nasa.gov/software/npb.html) (NPB3.0). I took their code and made a fork, adding only an improved build using [Gradle](https://gradle.org/).
+
+### Step 1: Write a skeleton SPEC file
+
+```shell
+[josevnz@dmaf5 NPB3.0-JAV-FORK]$  /usr/bin/rpmdev-newspec --output ~/rpmbuild/SPECS/NPB.spec --type minimal
+/home/josevnz/rpmbuild/SPECS/npb.spec created; type minimal, rpm version >= 4.16.
+```
+
+The resulting file looks like this:
+```
+Name:           npb
+Version:        
+Release:        1%{?dist}
+Summary:        
+
+License:        
+URL:            
+Source0:        
+
+BuildRequires:  
+Requires:       
+
+%description
+
+%prep
+%autosetup
+
+%build
+%configure
+%make_build
+
+%install
+rm -rf $RPM_BUILD_ROOT
+%make_install
+
+
+%files
+%license add-license-file-here
+%doc add-docs-here
+
+%changelog
+* Tue Oct 05 2021 Jose Vicente Nunez <kodegeek.com@protonmail.com>
+-  
+```
+
+Will remove the following tags from this skeleton file as they are not applicable to our task:
+* %autosetup (we will unpack the software ourselves, no patches)
+* %configure and %make_build (we will use Gradle)
+
+And will add a few other commands.
+
+Finally let's install the pre-requisites (Java and Gradle itself):
+
+```shell=
+sudo dnf install -y java-11-openjdk
+sudo -i /bin/mkdir -p /opt/gradle
+sudo -i /bin/curl --silent --location --fail --output /opt/gradle/gradle.zip https://services.gradle.org/distributions/gradle-7.2-bin.zip
+cd /opt/gradle && sudo /usr/bin/unzip gradle.zip && sudo /bin/rm -f /opt/gradle/gradle.zip
+```
+
+Now we are ready to change the SPEC file
+
+### Filling the building blocks for our Java RPM
+
+After [several changes](https://github.com/josevnz/tutorials/blob/main/npb.spec), like adding Gradle as part of the build we have the following:
+
+```
+Name:           NPB
+Version:        3.0
+Release:        1%{?dist}
+Summary:        Small set of programs designed to help evaluate the performance of parallel supercomputers
+
+License:        NOSA
+URL:            https://www.nas.nasa.gov/software/npb.html
+Source0:        https://www.nas.nasa.gov/assets/npb/%{name}%{version}.tar.gz
+
+BuildRequires:  java-11-openjdk-headless,tar,gzip,rpmdevtools,rpmlint
+Requires:       java-11-openjdk-headless
+
+# Custom macros (https://rpm-software-management.github.io/rpm/manual/macros.html)
+# If you want to see the value of many of these macros, just run this: /usr/bin/rpm --showrc
+%global debug_package %{nil}
+%global gradle /opt/gradle/gradle-7.2/bin/gradle
+%global curl /bin/curl --location --fail --silent --output
+%global JAVA_DIR NPB3_0_JAV
+
+%description
+
+The NAS Parallel Benchmarks (NPB) are a small set of programs designed to help evaluate the performance
+of parallel supercomputers. The benchmarks are derived from computational fluid dynamics (CFD)
+applications and consist of five kernels and three pseudo-applications in the original "pencil-and-paper"
+specification (NPB 1). The benchmark suite has been extended to include new benchmarks for unstructured
+adaptive meshes, parallel I/O, multi-zone applications, and computational grids. Problem sizes in NPB are
+predefined and indicated as different classes. Reference implementations of NPB are available in
+commonly-used programming models like MPI and OpenMP (NPB 2 and NPB 3).
+
+%prep
+test ! -x %{gradle} && echo "ERROR: Gradle not installed!" && exit 100
+# On a production environment you MOST LIKELY point to your private copy of the build artifacts
+/bin/curl --location --fail --silent --output %{_sourcedir}/%{name}%{version}.tar.gz  https://www.nas.nasa.gov/assets/npb/%{name}%{version}.tar.gz
+%setup -q -n %{name}%{version}
+
+%build
+cd %{name}%{version}-JAV
+# If you are not familiar with Gradle, you should read the following:
+# https://docs.gradle.org/current/userguide/building_java_projects.html#sec:custom_java_source_set_paths
+/bin/cat<<GRADLE>build.gradle.kts
+// Gradle build file dynamically created for %{name}%{version}
+plugins {
+    \`java-library\`
+}
+
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(11))
+    }   
+}
+
+sourceSets {
+    main {
+        java {
+            setSrcDirs(listOf("%{JAVA_DIR}"))
+        }
+    }   
+
+    test {
+        java {
+            setSrcDirs(listOf("test"))
+        }
+    }   
+}
+GRADLE
+%{gradle} clean java jar
+
+%install
+/bin/rm -rf %{buildroot}
+/bin/mkdir -v -p %{buildroot}/%{_bindir}
+/bin/mkdir -v -p %{buildroot}/%{_libdir}
+/bin/mkdir -v -p %{buildroot}/%{_pkgdocdir}
+/bin/cp -p -v %{_builddir}/%{name}%{version}/%{name}%{version}-JAV/build/libs/%{name}%{version}-JAV.jar %{buildroot}/%{_libdir}
+
+# On a production environment you MOST LIKELY point to your private copy of the build artifacts
+%{curl} %{buildroot}/%{_pkgdocdir}/LICENSE https://raw.githubusercontent.com/josevnz/%{name}%{version}-JAV-FORK/main/LICENSE
+%{curl} %{buildroot}/%{_pkgdocdir}/README.md https://github.com/josevnz/%{name}%{version}-JAV-FORK/blob/main/%{name}%{version}-JAV/README.md
+%{curl} %{buildroot}/%{_bindir}/testAllS https://raw.githubusercontent.com/josevnz/tutorials/main/testAllS
+%{curl} %{buildroot}/%{_bindir}/testAllW https://raw.githubusercontent.com/josevnz/tutorials/main/testAllW
+/bin/chmod a+xr %{buildroot}/%{_bindir}/{testAllS,testAllW}
+
+%clean
+/bin/rm -rf %{buildroot}
+
+%files
+%license %{_pkgdocdir}/LICENSE
+%doc %{_pkgdocdir}/README.md
+%{_libdir}/%{name}%{version}-JAV.jar
+%{_bindir}/testAllS
+%{_bindir}/testAllW
+
+%changelog
+* Tue Oct 05 2021 Jose Vicente Nunez <kodegeek.com@protonmail.com>
+- First RPM 
+
+```
+
+The SPEC file is heavily commented and you can see how I used the original tar.gz file without any changes and added a new build system on top of that, plus two ([1](https://github.com/josevnz/tutorials/blob/main/testAllS), [2](https://github.com/josevnz/tutorials/blob/main/testAllW)) wrapper scripts to run the Java code after is installed.
+
+Let's create the new RPM:
+
+```shell=
+[josevnz@dmaf5 ~]$ rpmbuild -ba ~/rpmbuild/SPECS/npb.spec
+Requires: /usr/bin/bash
+Checking for unpackaged file(s): /usr/lib/rpm/check-files /home/josevnz/rpmbuild/BUILDROOT/NPB-3.0-1.fc33.x86_64
+Wrote: /home/josevnz/rpmbuild/SRPMS/NPB-3.0-1.fc33.src.rpm
+Wrote: /home/josevnz/rpmbuild/RPMS/x86_64/NPB-3.0-1.fc33.x86_64.rpm
+Executing(%clean): /bin/sh -e /var/tmp/rpm-tmp.JGJ4Ky
+```
+
+Then install it:
+```shell=
+[josevnz@dmaf5 ~]$ sudo rpm -ihv /home/josevnz/rpmbuild/RPMS/x86_64/NPB-3.0-1.fc33.x86_64.rpm
+[sudo] password for josevnz: 
+Verifying...                          ################################# [100%]
+Preparing...                          ################################# [100%]
+Updating / installing...
+   1:NPB-3.0-1.fc33                   ################################# [100%]
+
+
+```
+
+### How does it look like?
+
+```shell=
+/usr/bin/testAllS
++ /usr/lib/jvm/java-11-openjdk-11.0.12.0.7-4.fc33.x86_64/bin/java -classpath /home/josevnz/rpmbuild/BUILD/NPB3.0/NPB3.0-JAV/build/libs/NPB3.0-JAV.jar NPB3_0_JAV.BT -np2 CLASS=S
+ NAS Parallel Benchmarks Java version (NPB3_0_JAV)
+ Multithreaded Version BT.S np=2
+No input file inputbt.data, Using compiled defaults
+Size: 12 X 12 X 12
+Iterations: 60 dt: 0.01
+Time step 1
+Time step 20
+Time step 40
+Time step 60
+Verification being performed for class S
+accuracy setting for epsilon = 1.0000000000000005E-8
+Comparison of RMS-norms of residual
+0. 0.1703428370954122 0.17034283709541312 5.377003288977261E-15
+1. 0.012975252070034126 0.012975252070034096 2.2728112665889987E-15
+2. 0.032527926989483404 0.032527926989486054 8.148866886442929E-14
+3. 0.026436421275142053 0.0264364212751668 9.361163090380881E-13
+4. 0.1921178413174506 0.1921178413174443 3.279505756228626E-14
+Comparison of RMS-norms of solution error
+0. 4.997691334580433E-4 4.997691334581158E-4 1.4513326350787734E-13
+1. 4.519566678297316E-5 4.519566678296193E-5 2.484368424681786E-13
+2. 7.397376517295259E-5 7.397376517292135E-5 4.222926198459033E-13
+3. 7.382123863238472E-5 7.382123863243973E-5 7.451745425239995E-13
+4. 8.926963098749218E-4 8.926963098749145E-4 8.258771422427503E-15
+BT.S: Verification Successful
+
+```
+
 
 ## What did we learn and what is next?
 
