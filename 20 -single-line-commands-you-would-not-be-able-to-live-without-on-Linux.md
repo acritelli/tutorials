@@ -41,7 +41,6 @@ Raise your hand if you haven't use this at least *once*:
 
 ```shell=
 cd $mydir && python3 -m http.server 8888
-Running a shell installer … without installing it
 ```
 
 ### 4 Downloading and running a shell script in one shot
