@@ -7,8 +7,8 @@ License:        NOSA
 URL:            https://www.nas.nasa.gov/software/npb.html
 Source0:        https://www.nas.nasa.gov/assets/npb/%{name}%{version}.tar.gz
 
-BuildRequires:  java-11-openjdk-headless,tar,gzip,rpmdevtools,rpmlint
-Requires:       java-11-openjdk-headless
+BuildRequires:  java-11-openjdk,tar,gzip,rpmdevtools,rpmlint
+Requires:       java-11-openjdk
 
 # Custom macros (https://rpm-software-management.github.io/rpm/manual/macros.html)
 # If you want to see the value of many of these macros, just run this: /usr/bin/rpm --showrc
@@ -75,9 +75,6 @@ GRADLE
 # On a production environment you MOST LIKELY point to your private copy of the build artifacts
 %{curl} %{buildroot}/%{_pkgdocdir}/LICENSE https://raw.githubusercontent.com/josevnz/%{name}%{version}-JAV-FORK/main/LICENSE
 %{curl} %{buildroot}/%{_pkgdocdir}/README.md https://github.com/josevnz/%{name}%{version}-JAV-FORK/blob/main/%{name}%{version}-JAV/README.md
-%{curl} %{buildroot}/%{_bindir}/testAllS https://raw.githubusercontent.com/josevnz/tutorials/main/testAllS
-%{curl} %{buildroot}/%{_bindir}/testAllW https://raw.githubusercontent.com/josevnz/tutorials/main/testAllW
-/bin/chmod a+xr %{buildroot}/%{_bindir}/{testAllS,testAllW}
 
 %clean
 /bin/rm -rf %{buildroot}
@@ -86,9 +83,7 @@ GRADLE
 %license %{_pkgdocdir}/LICENSE
 %doc %{_pkgdocdir}/README.md
 %{_libdir}/%{name}%{version}-JAV.jar
-%{_bindir}/testAllS
-%{_bindir}/testAllW
 
 %changelog
 * Tue Oct 05 2021 Jose Vicente Nunez <kodegeek.com@protonmail.com>
-- First RPM 
+- First RPM
