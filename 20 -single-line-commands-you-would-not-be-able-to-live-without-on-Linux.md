@@ -216,12 +216,19 @@ python3 -c "import csv,json,sys;print(json.dumps(list(csv.reader(open(sys.argv[1
 ```
 
 
-### 20
+### 20 Installing and running tools with Docker
 
-TODO
+Another favorite. If you have Docker installed and you want to run a command without installing a bunch of dependencies on your system (while doing a quick run) then this may be all you need:
+
+```shell
+/usr/bin/docker run --rm --interactive --verbose --location --fail --silent --output - https://raw.githubusercontent.com/josevnz/tutorials/main/20%20-single-line-commands-you-would-not-be-able-to-live-without-on-Linux.md
+```
+
+This will let you run the latest version of curl from a container, to later remove it. The possibilities are endless here.
 
 ## Summary
 
 * You saw so far how you can build powerful commands using simple commands. That is the one of the reasons Unix and Linux are so popular...
 * It is not difficult to learn. Focus on remembering what a simple command do and then think about how you can mix many simple commands to make a powerful recipe!
 * Always check the 'man page' or 'info command' to figure out what else the tool can do. You will be surprised than one tool can do everything without combining it with another tool.
+* There are many sites on the Internet with plenty of one line examples, we hope this will lead you to write better one liners of your own.
