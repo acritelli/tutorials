@@ -100,7 +100,7 @@ This is almost cheating. Repeate a command every 5 seconds and highlit the diffe
 
 (Or if you don't want to check the free column of 'vmstat 1').
 
-### 9. Size of each one of my disks
+### 9. Size of each one of my disks partitions
 
 lsbk (ls block) + jq (to manipulate JSON on the CLI). Never been easier:
 
@@ -122,7 +122,7 @@ _Note_: functions are superior and can do the same as an alias:
 function wi { test -n "$1" && stat --printf "%F\n" $1; }
 ```
 
-### 11. Size of a installed RPM:
+### 11. Size of a installed [RPM](https://en.wikipedia.org/wiki/RPM_Package_Manager):
 
 If you have an RPM based system sooner or later you will format your queries:
 
@@ -146,13 +146,13 @@ size $mydir
 
 ```
 
-### 13 Update all the git repositories on a directory
+### 13 Update all the [git](https://git-scm.com/) repositories on a directory
 
 ```shell=
 $ for i in */.git; do cd $(dirname $i); git pull; cd ..; done
 ```
 
-### 14 Expose a web directory but using containers
+### 14 Expose a web directory but using [containers](https://podman.io/)
 
 ```shell=
 $ podman run --rm -v .:/usr/share/nginx/html:ro,Z -p 30080:80 -d nginx
@@ -174,7 +174,7 @@ A frequent one I use with NGINX (I think it works with Apache also) to grab the 
 /usr/bin/cat /var/log/nginx/access.log | /usr/bin/cut -f 1 -d ' ' | /usr/bin/sort | /usr/bin/uniq -c | /usr/bin/sort -hr | /usr/bin/head -n 10
 ```
 
-### 17 Rounding floats in Bash
+### 17 Rounding floats in Bash, with Python help
 
 But you can do pretty cool stuff with Python, nut just limited to rounding numbers:
 
@@ -183,7 +183,7 @@ echo "22.67892"| python3 -c "print(f'{round(float(input()))}')"
 23
 ```
 
-### 18 A mini calculator with bc
+### 18 A mini calculator with [bc](https://man7.org/linux/man-pages/man1/bc.1p.html)
 
 function to define a quick calculator on the command line with variable precision (default 2):
 
@@ -207,9 +207,13 @@ $ qqbc "2/3" 4
 
 This is called qqbc because it’s an improvement on my the old function qbc :wink:
 
-### 19
+### 19 Convert a CSV to JSON
 
-TODO
+A modification of [this popular recipe](https://wiki.python.org/moin/Powerful%20Python%20One-Liners).
+
+```shell
+python3 -c "import csv,json,sys;print(json.dumps(list(csv.reader(open(sys.argv[1])))))" covid19-vaccinations-town-age-grp.csv
+```
 
 
 ### 20
