@@ -171,7 +171,12 @@ $ weather() {curl -s --connect-timeout 3 -m 5 http://wttr.in/$1}
 A frequent one I use with NGINX (I think it works with Apache also) to grab the top 10 IPs hitting a webserver from the access log:
 
 ```shell
-/usr/bin/cat /var/log/nginx/access.log | /usr/bin/cut -f 1 -d ' ' | /usr/bin/sort | /usr/bin/uniq -c | /usr/bin/sort -hr | /usr/bin/head -n 10
+/usr/bin/cat /var/log/nginx/access.log | \
+/usr/bin/cut -f 1 -d ' ' | \
+/usr/bin/sort | \
+/usr/bin/uniq -c | \
+/usr/bin/sort -hr | \
+/usr/bin/head -n 10
 ```
 
 ### 17 Rounding floats in Bash, with Python help
